@@ -1,1 +1,1 @@
-dotnet install --global p
+dotnet tool install --global p
