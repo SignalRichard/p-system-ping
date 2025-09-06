@@ -1,1 +1,1 @@
-nuget install --global p
+dotnet install --global p
