@@ -1,0 +1,57 @@
+name: Build & Test
+
+on:
+  push:
+  pull_request:
+    branches:
+    - main
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  ARTIFACT_NAME: PGenerated
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    outputs:
+      testcases: ${{ steps.get_tests.outputs.testcases }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - name: Setup P
+      run: ./build/scripts/Install-P.ps1
+    - name: Compile
+      run: ./build/scripts/Build-P.ps1
+    - name: Get Tests
+      id: get_tests
+      run: ./build/scripts/Get-Tests.ps1
+    - name: Publish Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ${{ env.ARTIFACT_NAME }}
+  test:
+    needs: build
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        testcase: ${{ fromJSON(needs.build.outputs.testcases) }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        persist-credentials: false
+    - name: Download Artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ env.ARTIFACT_NAME }}
+        path: ${{ env.ARTIFACT_NAME }}
+    - name: Setup P
+      run: ./build/scripts/Install-P.ps1
+    - name: Test
+      run: ./build/scripts/Test-P.ps1 -TestCase ${{ matrix.testcase }}
